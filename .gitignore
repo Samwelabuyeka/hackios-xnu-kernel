@@ -107,3 +107,6 @@ __pycache__/
 /xnuloader/identity.h
 !/xnuloader/im4p.py
 !/xnuloader/mkidentity.sh
+
+/tools/pac-emu/test_pac_emu
+/tools/pac-emu/pac_decoder.h
