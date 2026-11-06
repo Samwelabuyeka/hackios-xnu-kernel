@@ -24,6 +24,7 @@
 !/xnuloader/
 !/mtkshim/
 !/qemu/
+!/tools/pac-emu/
 !/tools/
 !/userland/
 !/sysimage/
