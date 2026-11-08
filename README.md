@@ -130,6 +130,8 @@ module, or the open lzfse library gets built). User space and the images: `REST=
 | `userland/` | my programs and libraries (`src/`), the image build, launchd jobs |
 | `sysimage/` | scripts that fetch and unpack the OS files from the IPSW (none of the files themselves) |
 | `devices/poco-x5-pro/` | one phone: its UEFI port, device tree, prebuilt UEFI images, firmware script, tools |
+| `devices/redmi-14c/` | a MediaTek phone: no UEFI, no PAC; the boot image, the SoC and firmware scripts, an honest status matrix |
+| `mtkshim/` | the MediaTek stage-0 boot shim: a Linux `Image` that LK can start, gathering into `struct bootinfo` |
 | `tools/` | APFS, firmware, QMI tests, run scripts |
 | `qemu/` | running in QEMU |
 | `docs/` | `notes.md`: the detailed notes (Russian); `cellular.md`: cellular; `air.md`, `metal.md`: the GPU |
@@ -138,10 +140,24 @@ module, or the open lzfse library gets built). User space and the images: `REST=
 ## Devices
 
 The kernel, loader and user space are shared. Everything about one phone lives in
-`devices/<name>/`: its UEFI, device tree, firmware list and tools. Today there is one,
-`devices/poco-x5-pro/`, and its README is the map of what a port to another Qualcomm phone must bring.
-The phone's drivers are the files `xnu/files/bsd/dev/hakios.*.c`; the head of each says where its
-numbers came from.
+`devices/<name>/`: its UEFI, device tree, firmware list and tools. The phone's drivers are the files
+`xnu/files/bsd/dev/hakios.*.c`; the head of each says where its numbers came from.
+
+There are two device directories, and they are not at the same stage:
+
+| Device | SoC | Boot chain | Status |
+|---|---|---|---|
+| `devices/poco-x5-pro/` | Snapdragon 778G (Adreno, ARMv8.2) | UEFI (Mu-Silicium) | the port this tree was built for; its README is the map of what a Qualcomm phone needs |
+| `devices/redmi-14c/` | MT6769Z Helio G81 (Mali-G52, ARMv8.2) | **no UEFI**: ATF → LK → Linux | the boot shim runs; everything above it is not started |
+
+The Redmi 14C is not a port in the same sense, because the tree's assumptions fail on it. Two are
+architectural rather than a matter of effort: there is no UEFI for `xnuloader/` to run under, and its
+cores have no FEAT_PAuth, which iOS 17+ arm64e user space requires (the iOS 16.5 arm64 user space
+this tree boots needs no PAC — that is why the POCO, also ARMv8.2, is possible). `docs/mediatek.md`
+is the full account: the boot chain, what each of the loader's 34 UEFI boot-service calls becomes, the
+measured cost of pointer authentication, and the three routes that exist. `docs/updates.md` is the
+update story — only Apple can authorise an install of iOS onto an Apple device, so HakiOS updates
+itself through its own channel (`tools/update-check.sh`) and says so rather than implying otherwise.
 
 ## Cellular
 

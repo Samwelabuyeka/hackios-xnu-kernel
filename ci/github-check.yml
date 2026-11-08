@@ -29,3 +29,32 @@ jobs:
           [ -x tools/apfs/run-tests.sh ] && tools/apfs/run-tests.sh || echo "no self-test on this runner"
       - name: SoC args generator reproduces the POCO X5 Pro values
         run: sh tools/soc-args-test.sh
+      - name: MediaTek DTB reader reproduces the MT6769 values
+        run: sh tools/mtk-soc-args-test.sh
+      - name: Register-map recovery matches a driver whose map is known
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          pip install -q capstone
+          tools/re-triage/run-tests.sh
+      - name: Release and update machinery (including every refusal)
+        run: tools/test/run-release-test.sh
+      - name: No signing key, and no vendor firmware, in the tree
+        run: |
+          # A private key in a public repository is an invitation to forge releases. The manifest
+          # tools refuse to work without a signature, so publishing one here would defeat that.
+          ! git ls-files | grep -E '(^|/)release\.key$|\.pem$|\.key$'
+          # Vendor firmware is the phone owner's to pull, never redistributed from here.
+          ! git ls-files | grep -E '^fw-|^devices/[^/]+/fw-'
+      - name: The MediaTek shim builds
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          mtkshim/build.sh
+      - name: The PAC emulator's decoder still matches GNU as
+        run: |
+          sudo apt-get install -y -qq binutils-aarch64-linux-gnu
+          tools/pac-emu/run-tests.sh --regen
+      - name: The shim runs on a CPU of each class (needs QEMU)
+        run: |
+          sudo apt-get install -y -qq qemu-system-arm device-tree-compiler
+          tools/test/run-mtkshim-qemu.sh
+
