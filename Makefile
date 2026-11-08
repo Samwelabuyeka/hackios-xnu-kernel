@@ -104,6 +104,8 @@ test:
 	tools/pac-emu/run-tests.sh
 	@echo "--- MediaTek device tree reader ---"
 	sh tools/mtk-soc-args-test.sh
+	@echo "--- reverse engineering: register map recovered from a known driver ---"
+	tools/re-triage/run-tests.sh
 	@echo "--- release / update machinery ---"
 	tools/test/run-release-test.sh
 	@echo "--- the shim under QEMU, on a CPU of each class ---"
@@ -117,6 +119,7 @@ check:
 	@echo "shell scripts parse"
 	sh tools/soc-args-test.sh
 	sh tools/mtk-soc-args-test.sh
+	tools/re-triage/run-tests.sh
 	tools/test/run-release-test.sh
 	@echo "--- what CI cannot run, and why ---"
 	@echo "  the shim needs aarch64-linux-gnu-gcc and qemu-system-aarch64: make test"

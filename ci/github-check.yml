@@ -31,6 +31,11 @@ jobs:
         run: sh tools/soc-args-test.sh
       - name: MediaTek DTB reader reproduces the MT6769 values
         run: sh tools/mtk-soc-args-test.sh
+      - name: Register-map recovery matches a driver whose map is known
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          pip install -q capstone
+          tools/re-triage/run-tests.sh
       - name: Release and update machinery (including every refusal)
         run: tools/test/run-release-test.sh
       - name: No signing key, and no vendor firmware, in the tree

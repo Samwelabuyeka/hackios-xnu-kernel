@@ -145,3 +145,7 @@ release.pem
 /devices/redmi-14c/boot.img
 
 !release.pub
+
+# re-triage build output: the ground-truth object is compiled by run-tests.sh
+/tools/re-triage/test/*.o
+/tools/re-triage/test/*.bin

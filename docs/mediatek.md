@@ -190,6 +190,62 @@ Every one of those is "not started", and saying so is the point of this document
 
 ---
 
+## 4b. Reverse engineering the drivers: what automates, and what does not
+
+Most of the work above is drivers for silicon nobody documented, so the question "can that be
+automated?" is the right one to ask. The answer is that **one layer of it genuinely can be, and the
+tool for it is in `tools/re-triage/`.**
+
+A driver for an undocumented block always starts the same way: find every place the code touches a
+memory-mapped register, and reduce that to `base + offset -> width, read/write`. Nothing else can be
+written until that map exists. It is also entirely mechanical — `adrp`/`add`/`movz`/`movk` to build
+an address, then a load or store through it — so a disassembler can recover it:
+
+```sh
+tools/re-triage/re_triage.py vendor_driver.ko            # ELF .ko, or a PE, or a Mach-O kext
+tools/re-triage/re_triage.py firmware_blob.bin --base 0x11002000   # a raw blob
+tools/re-triage/re_triage.py driver.ko --json            # for a second pass to annotate
+tools/re-triage/re_triage.py driver.ko --dump 0x11002000 # every access in one block, in order
+```
+
+It reads PE32+, Mach-O 64 and ELF64, disassembles with Capstone, and tracks register values through
+each straight-line run so that `adrp x1, … ; add x1, x1, #0x14 ; ldr w0, [x1]` becomes "read 4 bytes
+at base+0x14". Output is the block map plus an honest accounting of what it could not follow.
+
+### It is checked against an answer, not admired
+
+`tools/re-triage/run-tests.sh` compiles `test/known_map.c` — a stand-in driver for MediaTek's
+8250-compatible UART (the `mt6577-uart` the boot shim already looks for), a display block, and a PMIC
+block reached through a `write_reg(off, val)` helper — and requires the recovered map to equal the
+source's declarations exactly. It does: 3 blocks, 20 accesses, 0 unresolved.
+
+That test earned its place immediately by catching three real defects, two of which would have made
+the tool quietly useless:
+
+| Defect the test caught | What it did |
+|---|---|
+| `movz x1, #0x200c` disassembles as mnemonic `mov`, not `movz` | that branch never ran |
+| `movk`'s `lsl #16` is `operand[1].shift`, not a third operand | `0x1100|0x200c` became `0x1100`, fell below the peripheral floor, and the whole UART block vanished |
+| `str w1, [x0, x2]` puts the constant block base in the **index** register | missed every `write_reg()`-style helper, i.e. most PMIC and clock-controller access |
+
+### The limits, stated rather than hidden
+
+The tool recovers **which registers a driver touches**. It does not recover **what they mean**. It
+cannot tell you that offset `0x14` is UART line status, that bit 5 is transmit-FIFO-empty, or that a
+write must be followed by a read-back. Those come from a datasheet, from a similar documented driver
+(vendor Linux trees for other MT67xx parts), or from experiment on hardware — and experiment is the
+part that needs the phone.
+
+It also does not follow a register base through function arguments or stack slots, so a driver that
+computes its base once and passes it to every helper yields fewer accesses than it really performs.
+The report says how many loads/stores were left unresolved rather than dropping them silently.
+
+So: automated triage turns "weeks of clicking in a disassembler" into "an afternoon of reading a
+generated map". It does not turn "weeks" into "done", because the map is the beginning of a driver,
+not the driver.
+
+---
+
 ## 5. Reproducing all of it
 
 ```sh
