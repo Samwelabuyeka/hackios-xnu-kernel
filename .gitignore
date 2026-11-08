@@ -120,3 +120,28 @@ __pycache__/
 
 /tools/pac-emu/test_pac_emu
 /tools/pac-emu/pac_decoder.h
+
+# a release signing key is never in the tree: a private key in a public repository is an invitation
+# to forge releases. tools/release.py keygen makes one locally; the public half is published.
+/release.key
+/release.key.enc
+release.key
+*.pem
+release.pem
+/tools/*.key
+/tools/*.pem
+
+# a manifest describes one build; the published one lives in the channel, not here
+/release.json
+/release.json.sig
+
+# build output of the shim and the boot image
+/mtkshim/*.o
+/mtkshim/shim.elf
+/mtkshim/shim.bin
+/mtkshim/font5x7.h
+/mtkshim/test-payload.bin
+/mtkshim/payload.bin
+/devices/redmi-14c/boot.img
+
+!release.pub
